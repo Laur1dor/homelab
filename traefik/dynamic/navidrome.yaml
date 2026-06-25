@@ -1,0 +1,20 @@
+http:
+
+  routers:
+
+    navidrome:
+      entryPoints:
+        - https
+      rule: "Host(`nd.example.com`)"
+      middlewares:
+        - secured
+      tls: {}
+      service: navidrome
+
+  services:
+
+    navidrome:
+      loadBalancer:
+        servers:
+          - url: "http://ip:4533"
+        passHostHeader: true

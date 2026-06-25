@@ -1,0 +1,42 @@
+#  ⚠️  Никаких middleware, режущих/буферизующих тело запроса
+# ============================================================================
+http:
+
+  routers:
+
+    garage-s3:
+      rule: "Host(`s3.example.com`) || HostRegexp(`^.+[.]s3[.]example[.]com$`)"   # path + vhost (Traefik v3)
+      entryPoints:
+        - "https"
+#      middlewares:
+#        - secured            # на S3 auth НЕ вешать — туда ходят Synapse/клиенты по ключам
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "s3.example.com"
+            sans:
+              - "*.s3.example.com"      # отдельный wildcard на 2-й уровень
+      service: garage-s3
+
+    garage-ui:
+      rule: "Host(`garage.example.com`)"
+      entryPoints:
+        - "https"
+#      middlewares:
+#        - secured
+      tls: {}
+      service: garage-ui
+
+  services:
+
+    garage-s3:
+      loadBalancer:
+        servers:
+          - url: "http://ip:3900"
+        passHostHeader: true
+
+    garage-ui:
+      loadBalancer:
+        servers:
+          - url: "http://ip:3909"
+        passHostHeader: true

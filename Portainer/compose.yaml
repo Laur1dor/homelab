@@ -1,0 +1,14 @@
+version: "3.3"
+services:
+  twportainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    environment:
+      - TZ=Europe/Moscow
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/portainer/portainer_data:/data
+    ports:
+      - "8000:8000"
+      - "9443:9443"
+    restart: always

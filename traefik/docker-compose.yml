@@ -1,0 +1,43 @@
+services:
+  traefik:
+    image: traefik:latest # Используем последний образ Traefik
+    container_name: traefik # Имя контейнера
+    restart: unless-stopped # Говорим докеру, чтобы контейнер всегда пытался перезапуститься, в случае непредвиденной остановки
+    security_opt:
+      - no-new-privileges:true # Не даем получить контейнеру дополнительные привилегии без нашего ведома
+    networks:
+       proxy: # контейнер будет работать определенной докер сети с названием 'proxy'
+    ports:
+      - 80:80 # определяем HTTP порт
+      - 443:443 # определяем HTTPS порт
+    environment:
+      - CF_API_EMAIL=example@mail.com # Указываем свою почтовый адрес, который у нас служит аккаунтом в Cloudflare для получения API токена
+      - CF_DNS_API_TOKEN=ur_token # указываем значения полученного токена
+    volumes:
+      - /etc/localtime:/etc/localtime:ro # синхронизируем время контейнера со временем хоста
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Разрешаем Traefik взаимодействовать с докером напрямую
+      - /root/traefik-proxy/traefik.yaml:/traefik.yaml:ro # указываем где у нас находится файл статической конфигурации Traefik
+      - /root/traefik-proxy/acme.json:/acme.json # указываем где у нас будут храниться все данные о наших SSL сертификатах
+      - /root/traefik-proxy/dynamic:/dynamic:ro # Указываем где у нас хранится файл динамической конфигурации
+      - /root/traefik-proxy/logs:/var/log/traefik # прописываем путь до директории, где у нас будут храниться логи Traefik и access log
+    labels:
+      - "traefik.enable=true" # Активируем Traefik для данного сервиса
+      - "traefik.http.routers.traefik.entrypoints=http" # Определяем точку входа HTTP
+      - "traefik.http.routers.traefik.rule=Host(`traefik.example.com`)" # Определяем хост правило для роутинга
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:pass" # Прикручиваем базовую аутентификацию для защиты нашего traefik, указывая логин и пароль в захэшированном виде: сначала установить sudo apt install apache2-utils затем выполнить echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g
+      - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https" # Указываем что HTTP трафик должен быть перенаправлен в HTTPS трафик
+      - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https" # Задаем передадресацию заголовков для SSL
+      - "traefik.http.routers.traefik.middlewares=traefik-https-redirect" # Применяем Apply HTTPS redirect middleware для редиректа https трафика
+      - "traefik.http.routers.traefik-secure.entrypoints=https" # Безопасная точка входа для HTTPS
+      - "traefik.http.routers.traefik-secure.rule=Host(`traefik.example.com`)"  # Хост правило для https роутинга
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth" # Применяем аутентификационную middleware
+      - "traefik.http.routers.traefik-secure.tls=true" # Включаем TLS для безопасного соединения
+      - "traefik.http.routers.traefik-secure.tls.certresolver=cloudflare" # Используем Cloudflare для выпуска сертификатов
+      - "traefik.http.routers.traefik-secure.tls.domains[0].main=example.com" # Доменное имя второго уровня, на который выпускаем SSL сертификат
+      - "traefik.http.routers.traefik-secure.tls.domains[0].sans=*.void-shell.com" # Выпускаем wildcard SSL сертификат на все поддоменные имя в рамках домена, определенного правилом выше
+      - "traefik.http.routers.traefik-secure.service=api@internal" # Определяем внутренний сервис для Traefik API
+
+networks:
+  proxy:
+    name: proxy # Определяем внешнюю сеть к которой необходимо присоединиться
+    external: true # Указываем, что сеть является внешней

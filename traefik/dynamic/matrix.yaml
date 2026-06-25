@@ -1,0 +1,17 @@
+http:
+
+  routers:
+
+    matrix:
+      entryPoints:
+        - "https"
+      rule: "Host(`matrix.example.com`) || Host(`elementweb.example.com`) || Host(`admin.example.com`) || Host(`elementcall.example.com`) || Host(`push.example.com`) || Host(`example.com`)"
+      tls: {}
+      service: matrix
+
+  services:
+    matrix:
+      loadBalancer:
+        servers:
+          - url: "http://ip:81" #этот порт стоит по дефолту в репо matrix-docker-ansible-deploy для traefik
+        passHostHeader: true

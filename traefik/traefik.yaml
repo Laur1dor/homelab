@@ -1,0 +1,43 @@
+api:
+  dashboard: true #включаем дэшборд
+  debug: true # включаем уровень дебаг
+entryPoints: # определяем точки входа
+  http: # название точки входа
+    address: ":80" # порт который относиться к названию http
+    http: # следующие пять строчек, говорят нам, что мы на глобальном уровне заставляем весь трафик, который приходит на порт 80
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+  https: # название точки входа
+    address: ":443" # порт который относиться к названию https
+#      encodedCharacters:                  # Разрешённые закодированные символы (важно для Trilium)
+#        allowEncodedSlash: true           # Разрешить %2F
+#        allowEncodedPercent: true         # Разрешить %25
+#        allowEncodedHash: true            # Разрешить %23
+serversTransport: # следующие две строчки разрешают нам использовать самоподписанные ssl сертификаты в тех сервиса, которые их используют, например Proxmox
+  insecureSkipVerify: true
+providers: # определяем провайдеров конфигурации - это докер и файл динамической конфигурации
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    directory: /dynamic
+    watch: true
+certificatesResolvers: # определяем кто у нас выступает резолвером сертификатов
+  cloudflare: # кто именно, указываем, что надо использовать acme; указываем почту, которая используется в cloudflare
+    acme:
+      email: mail@gmail.com #add your email
+      storage: acme.json # определяем файл, где будет храниться вся информация об ssl сертификатов
+      dnsChallenge: # используем метод получения ssl сертификатов как dns challenge
+        provider: cloudflare
+        # provider: vultr
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+log: # определяем уровень логирования и путь для логов
+  level: "INFO"
+  filePath: "/var/log/traefik/traefik.log"
+accessLog:
+  filePath: "/var/log/traefik/access.log"

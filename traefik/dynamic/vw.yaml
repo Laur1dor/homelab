@@ -1,0 +1,20 @@
+http:
+
+  routers:
+
+    vaultwarden:
+      entryPoints:
+        - "https"
+      rule: "Host(`vw.example.com`)"
+      middlewares:
+        - secured
+      tls: {}
+      service: vaultwarden
+
+  services:
+
+    vaultwarden:
+      loadBalancer:
+        servers:
+          - url: "http://ip:8000"
+        passHostHeader: true

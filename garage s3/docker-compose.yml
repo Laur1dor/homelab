@@ -1,0 +1,42 @@
+# pct set 108 -mp0 zfs_pool:50,mp=/mnt/garage,backup=0
+
+services:
+  garage:
+    image: dxflrs/garage:v2.3.0
+    container_name: garage
+    restart: unless-stopped
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      # /mnt/garage -> mount-point ZFS-пула внутри LXC; обе папки на зеркале
+      - /mnt/garage/meta:/var/lib/garage/meta   # БД метаданных (LMDB)
+      - /mnt/garage/data:/var/lib/garage/data   # блоки-объекты
+    ports:
+      - "3900:3900"        # S3 API — НУЖЕН: Synapse (по LAN) + Traefik. Публикуем.
+      # порты ниже на ОДНОЙ ноде не нужны, оставлены для справки (закомментированы)
+      # - "3901:3901"      # RPC между нодами — только для МУЛЬТИНОДЫ
+      # - "3902:3902"      # S3 web (хостинг статики из бакета) — для медиа/файлов не нужно.
+      # - "3903:3903"      # Admin API — НЕ публиковать: морда дотянется внутри сети (garage:3903).
+    networks: [garage]
+
+  garage-webui:
+    image: khairul169/garage-webui:latest
+    container_name: garage-webui
+    restart: unless-stopped
+    depends_on: [garage]
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro    # морда сама берёт admin_token/endpoint отсюда
+      # - ./tmp:/tmp                          # опц.: вынести /tmp (мелочь; можно и tmpfs)
+    environment:
+      API_BASE_URL: "http://garage:3903"      # admin API Garage (внутри docker-сети, по имени контейнера)
+      S3_ENDPOINT_URL: "http://garage:3900"
+      # S3_REGION: "garage"
+      # --- ПАРОЛЬ на морду (UI торчит наружу через Traefik). Формат "логин:bcrypt".
+      #     хэш:  docker run --rm httpd:alpine htpasswd -nbB admin 'ПАРОЛЬ'   (в значении каждый $ -> $$)
+      AUTH_USER_PASS: "admin:ur_pass" # docker run --rm httpd:alpine htpasswd -nbB admin 'password'
+    ports:
+      - "3909:3909"        # веб-морда — публикуем для Traefik
+    networks: [garage]
+
+networks:
+  garage:
+    driver: bridge
