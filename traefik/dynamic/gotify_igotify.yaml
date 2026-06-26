@@ -1,0 +1,35 @@
+http:
+
+  routers:
+
+    gotify:
+      entryPoints:
+        - "https"
+      rule: "Host(`gotify.example.com`)"
+      middlewares:
+        - secured
+      tls: {}
+      service: gotify
+
+    igotify:
+      entryPoints:
+        - "https"
+      rule: "Host(`igotify.example.com`)"
+      middlewares:
+        - secured
+      tls: {}
+      service: igotify
+
+  services:
+
+    gotify:
+      loadBalancer:
+        servers:
+          - url: "http://ip:8080"
+        passHostHeader: true
+
+    igotify:
+      loadBalancer:
+        servers:
+          - url: "http://ip:8081"
+        passHostHeader: true
