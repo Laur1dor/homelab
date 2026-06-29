@@ -1,0 +1,20 @@
+http:
+
+  routers:
+
+    rocketchat:
+      entryPoints:
+        - "https"
+      rule: "Host(`rc.example.com`)"
+      middlewares:
+        - secured
+      tls: {}
+      service: rocketchat
+
+  services:
+
+    rocketchat:
+      loadBalancer:
+        servers:
+          - url: "http://ip:3000"
+        passHostHeader: true

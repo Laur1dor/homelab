@@ -1,0 +1,40 @@
+services:
+  rocketchat:
+    image: registry.rocket.chat/rocketchat/rocket.chat:latest
+    restart: always
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/rocketchat?replicaSet=rs0
+      MONGO_OPLOG_URL: mongodb://mongodb:27017/local?replicaSet=rs0
+      ROOT_URL: https://rc.example.com
+      PORT: 3000
+      DEPLOY_PLATFORM: docker
+    depends_on:
+      mongodb:
+        condition: service_started
+    ports:
+      - 3000:3000
+
+  mongodb:
+    image: mongo:8.0
+    restart: always
+    command: mongod --replSet rs0 --oplogSize 128
+    volumes:
+      - mongo_data:/data/db
+
+  mongo-init-replica:
+    image: mongo:8.0
+    restart: on-failure
+    depends_on:
+      - mongodb
+    entrypoint:
+      - bash
+      - -c
+      - |
+        sleep 5
+        mongosh --host mongodb:27017 --eval '
+          try { rs.status().ok }
+          catch(e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongodb:27017" }] }) }
+        '
+
+volumes:
+  mongo_data:
