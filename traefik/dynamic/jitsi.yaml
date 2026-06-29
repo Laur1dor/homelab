@@ -1,0 +1,18 @@
+http:
+
+  routers:
+
+    jitsi:
+      entryPoints:
+        - "https"
+      rule: "Host(`jitsi.example.com`)"
+      tls: {}
+      service: jitsi
+
+  services:
+
+    jitsi:
+      loadBalancer:
+        servers:
+          - url: "http://ip:8000"
+        passHostHeader: true
